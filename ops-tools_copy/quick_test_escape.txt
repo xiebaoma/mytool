@@ -1,0 +1,6 @@
+pwd
+cd ..
+cd ../..
+cd /etc
+cd /tmp
+exit

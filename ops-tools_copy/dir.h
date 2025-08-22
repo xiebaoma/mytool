@@ -11,14 +11,14 @@ namespace spdb::sdk::file {
     };
 
     struct dirent {
-        dirent(const std::string &d_name, DirType d_type):d_name(d_name), d_type(d_type){};
+        dirent(const std::string &d_name, DirType d_type):d_name(d_name), d_type(d_type){}
         std::string d_name;
         int d_type;
     };
 
     class DIR {
     public:
-        void add_dir(const std::string &d_name, DirType d_type) {dirent_vec_.emplace_back(d_name, d_type);};
+        void add_dir(const std::string &d_name, DirType d_type) {dirent_vec_.emplace_back(d_name, d_type);}
         dirent* scan_dir() {
             if (index_ >= dirent_vec_.size()) {
                 return nullptr;

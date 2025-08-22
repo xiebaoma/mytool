@@ -1,0 +1,6 @@
+Hello, World!
+This is a test text file.
+It contains multiple lines of text.
+用于测试文件客户端工具的中文内容。
+
+这是第二段内容。
