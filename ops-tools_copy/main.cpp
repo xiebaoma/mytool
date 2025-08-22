@@ -1,9 +1,7 @@
 /**
- * @file main.cpp
- * @author xiebaoma
- * @date 2025-08-22
+ * xiebaoma
+ * 2025-08-22
  */
-
 
 #include <iostream>
 #include <memory>
