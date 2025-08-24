@@ -1,0 +1,1 @@
+struct stat 是 POSIX/Linux 文件状态结构体，定义在 <sys/stat.h> 里，能转成 spdb_sdk 中的 FileStat 吗

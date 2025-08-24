@@ -19,9 +19,9 @@ int main(int argc, char* argv[]) {
         }
         
         // 创建Linux文件系统适配器
-        auto filesystem = std::make_unique<file_client::LinuxFileSystem>(root_directory);
+        //auto filesystem = std::make_unique<file_client::LinuxFileSystem>(root_directory);
         // 创建 SPDB_SDK 文件系统适配器
-        // auto filesystem = std::make_unique<file_client::SPDB_SDKFileSystem>(root_directory);
+        auto filesystem = std::make_unique<file_client::SPDB_SDKFileSystem>(root_directory);
         
         // 创建文件客户端
         file_client::FileClient client(std::move(filesystem));
