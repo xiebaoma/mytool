@@ -1,1 +1,0 @@
-/usr/bin/c++  -Wall -Wextra -O2 -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/file_client.dir/main.cpp.o CMakeFiles/file_client.dir/filesystem_interface.cpp.o CMakeFiles/file_client.dir/linux_filesystem.cpp.o CMakeFiles/file_client.dir/file_client.cpp.o -o file_client  -lpthread
