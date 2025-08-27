@@ -233,7 +233,8 @@ namespace file_client
 
     std::string SPDB_SDKFileSystem::read_file_content_at_offset(const std::string &path, size_t offset, size_t length)
     {
-        return read_file_with_fd(path, [offset, length](int fd, const std::string& path) -> std::string {
+        return read_file_with_fd(path, [offset, length](int fd, const std::string &path) -> std::string
+                                 {
             // Get file size
             off_t file_size = spdb::sdk::file::file_size(fd);
             if (file_size < 0)
@@ -275,8 +276,7 @@ namespace file_client
                 }
                 content.resize(total_read);
             }
-            return content;
-        });
+            return content; });
     }
 
     std::string SPDB_SDKFileSystem::resolve_path(const std::string &path) const
