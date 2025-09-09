@@ -1,0 +1,19 @@
+cp build/ops_tools toolpackage/usr/local/bin/
+
+dpkg-deb --build toolpackage
+
+dpkg -i toolpackage.deb
+
+dpkg -r spdb-sdk-filetool
+
+docker cp xbm-mysql-env:/home/ops-tools/toolpackage.deb .
+
+dpm upload -f toolpackage.deb -d focal -v 0.0.1 -a amd64 -u baoma_xie@shopee_com -p 13883880881xs -c "first commit"
+
+dpm upload -f toolpackage.deb -d noble -v 0.0.9 -c "spdb-sdk-tool v0.0.4 : fix lib name" -a amd64 -u db_tools -p "db_tools.bot@shopee.com"
+
+cp xbm-mysql-env:/home/ops-tools/toolpackage.deb .
+
+apt-get install spdb-sdk-tool
+
+dpkg-deb --build toolpackage

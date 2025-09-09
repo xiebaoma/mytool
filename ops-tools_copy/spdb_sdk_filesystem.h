@@ -30,6 +30,7 @@ namespace file_client {
         explicit SPDB_SDKFileSystem(const std::string& root_path = "test");
         ~SPDB_SDKFileSystem() override = default;
         void test_initialize();
+        void test_ibd_meta();
 
         // Directory operations
         std::vector<FileInfo> list_directory(const std::string& path) override;
@@ -45,6 +46,10 @@ namespace file_client {
         // File content reading
         std::string read_file_content(const std::string& path, size_t max_size = 0) override;
         std::string read_file_content_at_offset(const std::string& path, size_t offset, size_t length = 0) override;
+
+        // File metadata
+        std::string get_file_metadata(const std::string& path) override;
+        bool has_file_metadata(const std::string& path) override;
 
         // Path processing
         std::string resolve_path(const std::string& path) const override;
@@ -67,7 +72,7 @@ namespace file_client {
         size_t calculate_directory_size_recursive(const std::string& path) const;
         std::string normalize_path(const std::string& path) const;
         bool is_safe_path(const std::string& path) const;
-        
+
         // File I/O helper with automatic resource management
         template<typename Func>
         std::string read_file_with_fd(const std::string& path, Func&& read_func) const

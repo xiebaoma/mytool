@@ -17,7 +17,8 @@
 #include <algorithm>
 #include <cctype>
 #include <unordered_map>
-#include <functional>
+#include <vector>
+#include <string>
 
 namespace file_client
 {
@@ -33,7 +34,7 @@ namespace file_client
         {
             return CommandResult(true, "");
         }
-        auto tokens = parse_command(command_line);
+        std::vector<std::string> tokens = parse_command(command_line);
         if (tokens.empty())
         {
             return CommandResult(true, "");
@@ -42,6 +43,7 @@ namespace file_client
         std::vector<std::string> args(tokens.begin() + 1, tokens.end());
         static const std::unordered_map<std::string, CommandResult (FileClient::*)(const std::vector<std::string> &)> command_map = {
             {"ls", &FileClient::cmd_ls},
+            {"ll", &FileClient::cmd_ls},
             {"file", &FileClient::cmd_file},
             {"stat", &FileClient::cmd_stat},
             //{"du", &FileClient::cmd_du},
@@ -49,12 +51,13 @@ namespace file_client
             {"cd", &FileClient::cmd_cd},
             {"pwd", &FileClient::cmd_pwd},
             {"hexdump", &FileClient::cmd_hexdump},
+            {"meta", &FileClient::cmd_meta},
             {"help", &FileClient::cmd_help},
             {"?", &FileClient::cmd_help},
         };
         if (cmd == "exit" || cmd == "quit")
         {
-            return CommandResult(false, "exit");
+            return CommandResult(true, "exit");
         }
         auto it = command_map.find(cmd);
         if (it != command_map.end())
@@ -64,87 +67,109 @@ namespace file_client
         return CommandResult(false, "Unknown command: " + cmd + ", use 'help' for available commands");
     }
 
-    CommandResult FileClient::cmd_ls(const std::vector<std::string> &args)
-    {
+    CommandResult FileClient::cmd_ll(const std::vector<std::string>& args) {
+        std::vector<std::string> v;
+        v.push_back("-l");
+        v.insert(v.end(), args.begin(), args.end());
+        return cmd_ls(v);
+    }
+
+    CommandResult FileClient::cmd_ls(const std::vector<std::string>& args) {
         bool long_format = false;
         std::string target_path = ".";
 
-        // Parse arguments
-        for (const auto &arg : args)
-        {
-            if (arg == "-l")
-            {
+        for (const auto& arg : args) {
+            if (arg == "-l") {
                 long_format = true;
             }
-            else if (arg[0] != '-')
-            {
+            else if (arg[0] != '-') {
                 target_path = arg;
             }
         }
 
-        try
-        {
+        try {
             std::string resolved_path = filesystem_->resolve_path(target_path);
 
-            if (!filesystem_->exists(resolved_path))
-            {
+            if (!filesystem_->exists(resolved_path)) {
                 return CommandResult(false, "Path does not exist: " + target_path);
             }
 
-            if (!filesystem_->is_directory(resolved_path))
-            {
-                // If it's a file, display file information
+            if (!filesystem_->is_directory(resolved_path)) {
                 FileInfo info = filesystem_->get_file_info(resolved_path);
                 std::ostringstream oss;
 
-                // Note: SDK doesn't provide permission and time information
-                if (long_format)
-                {
-                    oss << info.name << " "
-                        << std::setw(10) << info.size << " " << "byte" << " "
-                        << FileSystemInterface::get_file_type_string(info.type);
+                if (long_format) {
+                    oss << std::left << std::setw(30) << info.name
+                        << std::right << std::setw(15) << info.size << " byte "
+                        << std::left << std::setw(12) << FileSystemInterface::get_file_type_string(info.type);
                 }
-                else
-                {
+                else {
                     oss << info.name;
                 }
+
                 return CommandResult(true, oss.str());
             }
 
             auto files = filesystem_->list_directory(resolved_path);
-            if (files.empty())
-            {
+            if (files.empty()) {
                 return CommandResult(true, "Directory is empty");
             }
 
             std::ostringstream result;
-            for (const auto &file : files)
-            {
-                if (long_format)
-                {
-                    result << file.name << " "
-                           << std::setw(10) << file.size << " " << "byte" << " "
-                           << FileSystemInterface::get_file_type_string(file.type)
-                           << std::endl;
-                }
-                else
-                {
-                    result << file.name << "  ";
+
+            if (long_format) {
+                for (const auto& file : files) {
+                    if (file.type == FileType::DIRECTORY) {
+                        result << "\033[34m";
+                    }
+                    if (file.type == FileType::DIRECTORY) {
+                        result << std::left << std::setw(30) << file.name
+                               << std::right << std::setw(15) <<  " - "
+                               << std::left << std::setw(12) << FileSystemInterface::get_file_type_string(file.type);
+                    }else {
+                        result << std::left << std::setw(30) << file.name
+                               << std::right << std::setw(15) << file.size << " byte "
+                               << std::left << std::setw(12) << FileSystemInterface::get_file_type_string(file.type);
+                    }
+                    if (file.type == FileType::DIRECTORY) {
+                        result << "\033[0m";
+                    }
+                    result << "\n";
                 }
             }
+            else {
+                int max_len = 0;
+                for (const auto &file : files)
+                    max_len = std::max(max_len, (int)file.name.size());
 
-            if (!long_format)
-            {
-                result << "\n";
+                int col_width = max_len + 2;
+                int term_width = 80;
+                int num_cols = std::max(1, term_width / col_width);
+                int num_rows = (files.size() + num_cols - 1) / num_cols;
+
+                for (int row = 0; row < num_rows; ++row) {
+                    for (int col = 0; col < num_cols; ++col) {
+                        int idx = col * num_rows + row;
+                        if (idx < files.size()) {
+                            const auto& file = files[idx];
+                            if (file.type == FileType::DIRECTORY)
+                                result << "\033[34m"; // mark 蓝色
+                            result << std::left << std::setw(col_width) << file.name;
+                            if (file.type == FileType::DIRECTORY)
+                                result << "\033[0m";
+                        }
+                    }
+                    result << "\n";
+                }
             }
 
             return CommandResult(true, result.str());
         }
-        catch (const std::exception &e)
-        {
+        catch (const std::exception& e) {
             return CommandResult(false, "Error: " + std::string(e.what()));
         }
     }
+
 
     CommandResult FileClient::cmd_file(const std::vector<std::string> &args)
     {
@@ -196,7 +221,6 @@ namespace file_client
                     result << ", cannot read content";
                 }
             }
-
             return CommandResult(true, result.str());
         }
         catch (const std::exception &e)
@@ -504,25 +528,68 @@ namespace file_client
         }
     }
 
+    CommandResult FileClient::cmd_meta(const std::vector<std::string> &args)
+    {
+        if (args.empty())
+        {
+            return CommandResult(false, "Usage: meta <filename>");
+        }
+
+        const std::string &filename = args[0];
+
+        try
+        {
+            std::string resolved_path = filesystem_->resolve_path(filename);
+
+            // 检查文件是否支持元数据
+            if (!filesystem_->has_file_metadata(resolved_path))
+            {
+                if (!filesystem_->exists(resolved_path))
+                {
+                    return CommandResult(false, "File does not exist: " + filename);
+                }
+                else if (filesystem_->is_directory(resolved_path))
+                {
+                    return CommandResult(false, filename + " is a directory, cannot get metadata");
+                }
+                else
+                {
+                    return CommandResult(false, "Unsupported file type. Only redolog and IBD files have metadata.\n"
+                                               "Supported: *.ibd files, #ib_redo* files");
+                }
+            }
+
+            // 获取文件元数据
+            std::string metadata = filesystem_->get_file_metadata(resolved_path);
+            return CommandResult(true, metadata);
+        }
+        catch (const std::exception &e)
+        {
+            return CommandResult(false, "Error: " + std::string(e.what()));
+        }
+    }
+
     CommandResult FileClient::cmd_help(const std::vector<std::string> &)
     {
         std::ostringstream help;
         help << "File Client Tool - Available Commands:\n\n"
              << "Directory Operations:\n"
-             << "  ls [path]          List directory contents\n"
-             << "  ls -l [path]       List detailed directory contents (permissions, size, time)\n"
-             << "  cd [path]          Change directory\n"
-             << "  pwd                Show current directory\n\n"
+             << "  ls [path]                List directory contents\n"
+             << "  ls -l [path]             List detailed directory contents (permissions, size, time)\n"
+             << "  ll                       List directory contents\n"
+             << "  cd [path]                Change directory\n"
+             << "  pwd                      Show current directory\n\n"
              << "File Information:\n"
-             << "  file <filename>    Show file type\n"
-             << "  stat <filename>    Show detailed file information\n"
+             << "  file <filename>          Show file type\n"
+             << "  meta <filename>          Show file meta infomation (only redo, ibd)\n"
+             << "  stat <filename>          Show detailed file information\n\n"
              << "File Content:\n"
-             << "  cat <filename>     Display file content\n"
-             << "  hexdump <filename> Display hexadecimal dump of file\n\n"
-             << "    hexdump -len -offset <filename>"
+             << "  cat <filename>           Display file content\n"
+             << "  hexdump <filename>       Display hexadecimal dump of file\n"
+             << "    hexdump -len -offset <filename>\n\n"
              << "Other:\n"
-             << "  help               Show this help message\n"
-             << "  exit/quit          Exit the program\n\n"
+             << "  help                     Show this help message\n"
+             << "  exit/quit                Exit the program\n\n"
              << "Note: Access is restricted to the specified root directory";
 
         return CommandResult(true, help.str());
@@ -533,37 +600,37 @@ namespace file_client
         SPDB_SDKFileSystem *spdb_sdk_fs = dynamic_cast<SPDB_SDKFileSystem *>(filesystem_.get());
         if (spdb_sdk_fs)
         {
-            std::cout << "File Client Tool started (Root directory: " << spdb_sdk_fs->get_real_system_path() << ")\n";
+            std::cerr << "File Client Tool started (Root directory: " << spdb_sdk_fs->get_real_system_path() << ")\n";
         }
         else
         {
-            std::cout << "File Client Tool started\n";
+            std::cerr << "File Client Tool started\n";
         }
-        std::cout << "Type 'help' for available commands, 'exit' to quit\n\n";
+        std::cerr << "Type 'help' for available commands, 'exit' to quit\n\n";
         std::string input;
         while (true)
         {
-            std::cout << get_prompt(); // 打印提示符
+            std::cerr << get_prompt(); // 打印提示符
             if (!std::getline(std::cin, input))
             {
                 break; // EOF or input error
             }
             auto result = execute_command(input);
-            if (!result.success)
-            {
-                std::cerr << "Error: " << result.message << std::endl;
-            }
             if (result.message == "exit")
             {
                 break; // Exit command
             }
+            if (!result.success)
+            {
+                std::cerr << "Error: " << result.message << std::endl;
+            }
             if (!result.message.empty())
             {
-                std::cout << result.message << std::endl;
+                std::cerr << result.message << std::endl;
             }
-            std::cout << std::endl;
+            std::cerr << std::endl;
         }
-        std::cout << "Goodbye!" << std::endl;
+        std::cerr << "Goodbye!" << std::endl;
     }
 
     // Private utility method implementations

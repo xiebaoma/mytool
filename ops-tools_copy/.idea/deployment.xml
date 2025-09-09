@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" autoUploadExternalChanges="true">
+  <component name="PublishConfigData">
     <serverData>
       <paths name="xie-mysql-env (f3e229b7-2209-444a-96c2-79dc798c24c2)">
         <serverdata>
@@ -13,6 +13,5 @@
         </serverdata>
       </paths>
     </serverData>
-    <option name="myAutoUpload" value="ALWAYS" />
   </component>
 </project>

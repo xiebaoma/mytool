@@ -168,6 +168,22 @@ namespace file_client
          */
         virtual std::string read_file_content_at_offset(const std::string &path, size_t offset, size_t length = 0) = 0;
 
+        /**
+         * @brief Get file metadata
+         * @param path File path
+         * @return Metadata information as formatted string
+         * @throw std::runtime_error if file does not exist or metadata cannot be retrieved
+         * @note Only supports files with metadata (redolog, IBD files)
+         */
+        virtual std::string get_file_metadata(const std::string &path) = 0;
+
+        /**
+         * @brief Check if file has metadata
+         * @param path File path
+         * @return true if file has metadata, false otherwise
+         */
+        virtual bool has_file_metadata(const std::string &path) = 0;
+
         /** @} */
 
         /**

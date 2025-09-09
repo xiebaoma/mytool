@@ -18,10 +18,14 @@
 #include <algorithm>
 #include <sstream>
 #include <fcntl.h>
+#include <iostream>
 
 #include <spdb-sdk/sdk/sdk.h>
 #include <spdb-sdk/file/file_io.h>
 #include <spdb-sdk/file/dir.h>
+#include <spdb-sdk/file/global_lsn.h>
+#include <spdb-sdk/file/file_meta_info.h>
+// #include "/usr/local/include/spdb-sdk/file"
 
 namespace file_client
 {
@@ -65,7 +69,33 @@ namespace file_client
             root_path_ += '/';
         }
 
-        test_initialize();
+        // test_initialize();
+        // test_ibd_meta();
+    }
+
+    void SPDB_SDKFileSystem::test_ibd_meta()
+    {
+        char s[] = "/mysql/data/ibdata5557.ibd";
+
+        std::atomic<uint64_t> cp = 1000;
+        std::atomic<uint64_t> lsn = 100;
+        spdb::sdk::utils::set_global_checkpoint_ptr(&cp);
+        spdb::sdk::utils::set_global_lsn_ptr(&lsn);
+
+        bool exist = false;
+        auto e = spdb::sdk::file::file_exist_rw_version(s);
+        int fd = spdb::sdk::file::open(s, O_RDWR | O_CREAT);
+        void *buf = malloc(4 * 1024 * 1024);
+        memset(buf, 0, 4 * 1024 * 1024);
+        spdb::sdk::file::pwrite(fd, buf, 4 * 1024 * 1024, 0);
+        spdb::sdk::file::close(fd);
+
+        spdb::sdk::file::IbdMetaInfo *meta_info = spdb::sdk::file::get_ibd_meta_info(s);
+        std::cout << "ibd_meta_info uuid: " << meta_info->uuid << std::endl;
+
+        e = spdb::sdk::file::file_exist_rw_version(s);
+        spdb::sdk::file::unlink(s);
+        e = spdb::sdk::file::file_exist_rw_version(s);
     }
 
     void SPDB_SDKFileSystem::test_initialize()
@@ -73,31 +103,45 @@ namespace file_client
         char redo1[] = "/mysql/data/#ib_redo1";
         char redo2[] = "/mysql/data/#ib_redo2";
         char redo3[] = "/mysql/data/#ib_redo3";
-        char redo4[] = "/mysql/data/#ib_redo4";
+        char redo4[] = "/mysql/data/#test.txt";
+        char redo582[] = "/mysql/data/#ib_redo582";
+        char ibd1[] = "/mysql/data/sbtest1.ibd";
+        char s[] = "/mysql/data/ibdata5557.ibd";
 
         // Open files
         int fd_redo1 = spdb::sdk::file::open(redo1, O_RDWR | O_CREAT, 0644);
-        int fd_redo2 = spdb::sdk::file::open(redo2, O_RDWR | O_CREAT, 0000);
+        int fd_redo2 = spdb::sdk::file::open(redo2, O_RDWR | O_CREAT, 0644);
         int fd_redo3 = spdb::sdk::file::open(redo3, O_RDWR | O_CREAT, 0644);
-        int fd_redo4 = spdb::sdk::file::open(redo4, O_RDWR | O_CREAT, 0644);
+        // int fd_redo4 = spdb::sdk::file::open(redo4, O_RDWR | O_CREAT, 0644);
+        int fd_redo582 = spdb::sdk::file::open(redo582, O_RDWR | O_CREAT, 0644);
+        // int fd_ibd1  = spdb::sdk::file::open(ibd1, O_RDWR | O_CREAT,0644);
+        int fd = spdb::sdk::file::open(s, O_RDWR | O_CREAT);
 
         // Write some simulation content
         const char *msg_redo1 = "Redo log 1: test content one\n";
         const char *msg_redo2 = "Redo log 2: test content two\n";
         const char *msg_redo3 = "Redo log 3: test content three\n";
         const char *msg_redo4 = "Redo log 4: test content four\n";
+        const char *msg_redo582 = "Redo log 58: test content four\n";
+
+        // const char *msg_ibd1 = "ibd 1: test content one\n";
 
         // Use pwrite to write
         spdb::sdk::file::pwrite(fd_redo1, msg_redo1, strlen(msg_redo1), 0);
         spdb::sdk::file::pwrite(fd_redo2, msg_redo2, strlen(msg_redo2), 0);
         spdb::sdk::file::pwrite(fd_redo3, msg_redo3, strlen(msg_redo3), 0);
-        spdb::sdk::file::pwrite(fd_redo4, msg_redo4, strlen(msg_redo4), 0);
+        // spdb::sdk::file::pwrite(fd_redo4, msg_redo4, strlen(msg_redo4), 0);
+        spdb::sdk::file::pwrite(fd_redo582, msg_redo582, strlen(msg_redo582), 0);
+        // spdb::sdk::file::pwrite(fd_ibd1,  msg_ibd1,  strlen(msg_ibd1), 0);
 
         // Close files
         spdb::sdk::file::close(fd_redo1);
         spdb::sdk::file::close(fd_redo2);
         spdb::sdk::file::close(fd_redo3);
-        spdb::sdk::file::close(fd_redo4);
+        // spdb::sdk::file::close(fd_redo4);
+        spdb::sdk::file::close(fd_redo582);
+        // spdb::sdk::file::close(fd_ibd1);
+        spdb::sdk::file::close(fd);
 
         /*
         // Delete files
@@ -106,7 +150,9 @@ namespace file_client
         spdb::sdk::file::unlink(redo3);
         spdb::sdk::file::unlink(redo4);
         */
-        // Create a MySQL supported directory
+        // spdb::sdk::file::unlink(redo3);
+        // spdb::sdk::file::unlink(ibd1);
+        //  Create a MySQL supported directory
         char dir_test[] = "/mysql/data/test";
         spdb::sdk::file::mkdir(dir_test, 0755);
     }
@@ -241,19 +287,19 @@ namespace file_client
             {
                 throw std::runtime_error("Failed to get file size: " + path);
             }
-            
+
             if (offset >= static_cast<size_t>(file_size))
             {
                 throw std::runtime_error("Offset exceeds file size");
             }
-            
+
             // Determine the actual length to read
             size_t bytes_to_read = length;
             if (length == 0 || length > static_cast<size_t>(file_size) - offset)
             {
                 bytes_to_read = file_size - offset;
             }
-            
+
             std::string content;
             if (bytes_to_read > 0)
             {
@@ -477,6 +523,129 @@ namespace file_client
         // Check if original path contains patterns trying to escape root directory
         std::string resolved = resolve_path(path);
         return !is_safe_path(resolved);
+    }
+
+    std::string SPDB_SDKFileSystem::get_file_metadata(const std::string &path)
+    {
+        if (!exists(path))
+        {
+            throw std::runtime_error("File does not exist: " + path);
+        }
+
+        if (is_directory(path))
+        {
+            throw std::runtime_error("Path is a directory, cannot get metadata: " + path);
+        }
+
+        std::string full_path = get_full_path(path);
+
+        // 判断文件类型
+        std::string filename = path.substr(path.find_last_of('/') + 1);
+        std::string file_extension;
+        size_t dot_pos = filename.find_last_of('.');
+        if (dot_pos != std::string::npos)
+        {
+            file_extension = filename.substr(dot_pos + 1);
+            std::transform(file_extension.begin(), file_extension.end(), file_extension.begin(), ::tolower);
+        }
+
+        std::ostringstream result;
+
+        // 根据文件类型判断并获取相应的元数据
+        if (file_extension == "ibd")
+        {
+            // 获取IBD文件元数据
+            spdb::sdk::file::IbdMetaInfo *ibd_meta = spdb::sdk::file::get_ibd_meta_info(full_path.c_str());
+            if (ibd_meta == nullptr)
+            {
+                throw std::runtime_error("Failed to get IBD metadata for: " + filename);
+            }
+
+            result << "IBD Metadata for: " << filename << "\n\n";
+            result << "UUID: " << ibd_meta->uuid << "\n";
+            result << "Space ID: " << ibd_meta->space_id << "\n";
+            result << "Shard Count: " << ibd_meta->shard_count << "\n";
+            result << "Block Count: " << ibd_meta->block_count << "\n";
+
+            if (!ibd_meta->versions.empty())
+            {
+                result << "\nVersions (" << ibd_meta->versions.size() << "):\n";
+                for (size_t i = 0; i < ibd_meta->versions.size(); ++i)
+                {
+                    const auto &version = ibd_meta->versions[i];
+                    result << "  Version " << (i + 1) << ":\n";
+                    result << "    UUID: " << version.uuid << "\n";
+                    result << "    Start LSN: " << version.start_lsn << "\n";
+                    result << "    End LSN: " << version.end_lsn << "\n";
+                    result << "    Space ID: " << version.space_id << "\n";
+                    result << "    Permission: "
+                           << (version.permission == spdb::sdk::file::IbdPermission::READ_ONLY ? "READ_ONLY" : "READ_WRITE")
+                           << "\n";
+                }
+            }
+
+            delete ibd_meta; // 释放内存
+        }
+        else if (filename.length() >= 8 && filename.substr(0, 8) == "#ib_redo")
+        {
+            // 获取Redo日志元数据
+            spdb::sdk::file::RedoMetaInfo *redo_meta = spdb::sdk::file::get_redo_meta_info(full_path.c_str());
+            if (redo_meta == nullptr)
+            {
+                throw std::runtime_error("Failed to get Redo metadata for: " + filename);
+            }
+
+            result << "Redo Log Metadata for: " << filename << "\n\n";
+            result << "Cluster ID: " << redo_meta->cluster_id << "\n";
+            result << "Cluster UUID: " << redo_meta->cluster_uuid << "\n";
+            result << "Chunk Size: " << redo_meta->redo_log_chunk_size << " bytes\n";
+            result << "Chunk Count: " << redo_meta->redo_log_chunk_count << "\n";
+
+            if (!redo_meta->slots.empty())
+            {
+                result << "\nSlots (" << redo_meta->slots.size() << "):\n";
+                for (size_t i = 0; i < redo_meta->slots.size(); ++i)
+                {
+                    const auto &slot = redo_meta->slots[i];
+                    result << "  Slot " << (i + 1) << ":\n";
+                    result << "    ID: " << slot.id << "\n";
+                    result << "    Flag Use: " << slot.flag_use << "\n";
+                    result << "    File Name: " << slot.file_name << "\n";
+                }
+            }
+
+            delete redo_meta; // 释放内存
+        }
+        else
+        {
+            throw std::runtime_error("Unsupported file type. Only redolog and IBD files have metadata.\n"
+                                     "Supported: *.ibd files, #ib_redo* files");
+        }
+
+        return result.str();
+    }
+
+    bool SPDB_SDKFileSystem::has_file_metadata(const std::string &path)
+    {
+        if (!exists(path) || is_directory(path))
+        {
+            return false;
+        }
+
+        std::string filename = path.substr(path.find_last_of('/') + 1);
+        std::string file_extension;
+        size_t dot_pos = filename.find_last_of('.');
+        if (dot_pos != std::string::npos)
+        {
+            file_extension = filename.substr(dot_pos + 1);
+            std::transform(file_extension.begin(), file_extension.end(), file_extension.begin(), ::tolower);
+        }
+
+        // 检查是否为支持的文件类型
+        // IBD文件：*.ibd
+        // Redolog文件：#ib_redo***
+        return file_extension == "ibd" ||
+               (filename.length() >= 8 && filename.substr(0, 8) == "#ib_redo");
     }
 
 } // namespace file_client

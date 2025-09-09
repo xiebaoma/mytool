@@ -6,7 +6,7 @@
  * @version 1.0.0
  *
  * Provides Unix command-line-like file system operation interface, supporting
- * interactive modes. Based on file system interface abstraction, 
+ * interactive modes. Based on file system interface abstraction,
  * it can adapt to different file system implementations.
  */
 
@@ -89,6 +89,10 @@ namespace file_client
          * @{
          */
 
+
+        CommandResult cmd_ll(const std::vector<std::string> &args);
+
+
         /**
          * @brief ls command - List directory contents
          * @param args Command arguments, supports -l option and path parameter
@@ -157,6 +161,14 @@ namespace file_client
          * @return Command execution result
          */
         CommandResult cmd_hexdump(const std::vector<std::string> &args);
+
+        /**
+         * @brief Get file metadata command
+         * @param args Command arguments (filename)
+         * @return Command execution result
+         * @note Only supports redolog and IBD files with metadata
+         */
+        CommandResult cmd_meta(const std::vector<std::string> &args);
 
         /**
          * @brief help command - Display help information

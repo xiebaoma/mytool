@@ -14,6 +14,7 @@
 #include <exception>
 #include <string>
 #include <fstream>
+#include <glog/logging.h>
 
 #include "file_client.h"
 #include "spdb_sdk_filesystem.h"
@@ -30,6 +31,17 @@
  */
 int main(int argc, char *argv[])
 {
+
+    FILE* devnull = fopen("/dev/null", "w");
+    dup2(fileno(devnull), fileno(stdout));
+
+    FLAGS_log_dir = "/dev/null";
+    FLAGS_logtostderr = false;
+    FLAGS_alsologtostderr = false;
+    FLAGS_minloglevel = google::GLOG_WARNING;
+
+    google::InitGoogleLogging(argv[0]);
+
     // Set default root directory
     const std::string DEFAULT_ROOT_DIRECTORY = "/mysql/data";
     try
@@ -47,9 +59,9 @@ int main(int argc, char *argv[])
             }
         }
         // Display startup information
-        std::cout << "Starting SPDB SDK File Client..." << std::endl;
-        std::cout << "Root directory: " << root_directory << std::endl;
-        std::cout << "----------------------------------------" << std::endl;
+        std::cerr << "Starting SPDB SDK File Client..." << std::endl;
+        std::cerr << "Root directory: " << root_directory << std::endl;
+        std::cerr << "----------------------------------------" << std::endl;
         auto filesystem = std::make_unique<file_client::SPDB_SDKFileSystem>(root_directory);
         file_client::FileClient client(std::move(filesystem));
         client.run_interactive();

@@ -1,0 +1,13 @@
+Package: spdb-sdk-tool
+Version: 8.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Depends: libc6 (>= 2.17), libstdc++6 (>= 4.9)
+Maintainer: XieBaoma <baoma.xie@shopee.com>
+Description: SPDB SDK File System Client Tool
+ A command-line file system client tool based on SPDB SDK.
+ Provides Linux command-line-like file operation interface
+ including directory browsing, file information viewing
+ and file content display in both text and hexdump formats.
+ fix link name
