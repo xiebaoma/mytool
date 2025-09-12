@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" autoUpload="Always" autoUploadExternalChanges="true">
+    <serverData>
+      <paths name="xbm-mysql-debug (7a4ca6a7-7cff-4fa7-b681-666b4d36b1a0)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/ops-tools" local="$PROJECT_DIR$" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug-xbm-mysql-debug" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+      <paths name="xie-mysql-env (f3e229b7-2209-444a-96c2-79dc798c24c2)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/ops-tools" local="$PROJECT_DIR$" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug-xie-mysql-env" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+    </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
+  </component>
+</project>

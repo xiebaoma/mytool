@@ -69,7 +69,7 @@ namespace file_client
             root_path_ += '/';
         }
 
-        // test_initialize();
+        //test_initialize();
         // test_ibd_meta();
     }
 
